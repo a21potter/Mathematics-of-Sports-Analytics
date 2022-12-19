@@ -1,0 +1,21 @@
+---
+title: "Untitled"
+author: "Amber Potter"
+date: "9/1/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Class Notes
+
+What is sports analytics?
+
+- Uses: Performance, outcomes, strategy/game plan, lineup/roster, matchups, reflection, compensation, scheduling/strength of schedule, compensation
+
+- Tools: Stats, forecasting, optimization, simulation, machine learning
+
+- Goals: Understand, measure, enhance
+

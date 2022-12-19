@@ -1,0 +1,70 @@
+---
+title: "Ohtani vs. Ohtani"
+author: "Amber Potter"
+date: '2022-12-14'
+output: pdf_document
+geometry: margin=2cm
+---
+
+## Introduction
+
+Shohei Ohtani has taken the MLB by storm as an All Star pitcher and batter. Back in Japan, he played in the Nippon Professional Baseball's Pacific League for the Hokkaido Nippon-Ham Fighters. Now, he has established himself as a starting pitcher and DH and #17 for the Los Angeles Angels. In the last two years, Ohtani has been doing what no other player has done in over a century, building the foundation for a new type of two-way flexibility in players.
+
+But what would happen if he pitched and batted against himself?
+
+## Data
+
+The data for this project comes from Bill Petti's `baseballr` package. It includes Statcast data representing every pitch from the 2021 season. For this project, the data was filtered to only include regular season and post-season data. To create Ohtani's pitching dataset, I filtered for only observations where Ohtani was the pitcher and where he was facing a left-handed batter. To create Ohtani's batting dataset, I filtered for only observations where he was the batter, where he was facing a right-handed pitcher, and where the pitch thrown was one of the 5 pitches that Ohtani threw in 2021 (4-Seam Fastball, Slider, Split-Finger, Curveball, and Cutter). These filterings aimed to narrow down the data to just observations most similar to Ohtani facing Ohtani.
+
+# Extracting Useful Probabilities
+
+Before coding the simulation, I created a series of tables containing data that would be used during different branches of the at-bat decision tree within the function defining the at-bat simulation. These tables include the probabilities of different pitches being thrown on different counts, the probabilities of different pitches being in the strikezone, the probabilities given that it is in the zone that it is hit into play or counted as a strike, the probability of a strike being a foul ball, and the probabilities that a ball hit into play is a hit.
+
+The tables containing these probabilities as well as the code for these tables are included in the Appendix. 
+
+The plots included in my presentation visualizing a few of these tables are also located in the Appendix.
+
+# Simulating an At-Bat
+
+In order to examine the expected outcome of Ohtani vs. Ohtani, I decided to simulate 1000 mock at-bats of this impossible situation. Tod do so, I decided I would use each possible batting count as a possible state, with three strikes or four balls as absorbing states. I also knew that the event of a hit or a walk would also need to be at-bat terminating events.
+
+To set up this simulation, each at bat begins with an 0-0 count. I use a while loop to include the possibility of any number of pitches being thrown during an at-bat. On each count, or for each state, I incorporated the conditional probabilities of different pitches being thrown given that count. For each count, I randomly sampled from Ohtani's 5 pitches based on these probabilities to determine the pitch thrown for that iteration of the while loop. By simulating Ohtani's pitcher tendencies in this way, I tried to account for his habits or patterns, like how he throws 4-Seam Fastball's more often when behind in the count.
+
+Then, given the type of pitch thrown, I incorporated the conditional probability that it was thrown in the strikezone. To find these probabilities, I grouped Ohtani's pitcher data by pitch type, and calculated the proportion of times where that pitch was either hit or called a strike, and the proportion of times where that pitch was called a ball. Whether the pitch was in the strikezone was then chosen randomly based on these probabilities.
+
+If the pitch was not determined to be in the strikezone, the number of balls was increased by one and the current state was updated to reflect this. 
+
+If the pitch was simulated to be in the strikezone based on Ohtani's pitcher data, I then simulated whether Ohtani the batter would put the ball in play or not. Again using conditional probabilities, given the pitch thrown, I found the probability of that pitch being hit into play or being counted as a strike. These probabilities were used to randomly decide if the pitch was hit in play or counted as a strike. 
+
+If the pitch was in the strikezone and was determined to 'count as a strike', this included swinging strikes, called strikes, and foul balls. If the pitch was labeled as 'counted as a strike', I then found the conditional probability, given the pitch type, of the strike being a foul ball or not using Ohtani's batter data, and used those probabilities to randomly decide if it would be labeled as a foul ball in this simulation. I had to do this because foul balls should only be counted as strikes when there are not already 2 strikes in the count. If there are less than two strikes and the current pitch is a strike (including foul balls), the number of strikes in the count is then increased by one and the state is updated. If there are 2 strikes and the current pitch is a strike that is not a foul ball, the number of strikes in the count is increased by one and the state is updated also. However, if there are 2 strikes and the strike is a foul ball, the count does not change, and that state simply repeats.
+
+If the pitch was in the strikezone, but was determined to be hit in play, I then incorporated the probabilities of it being a successful hit or an out. To find these probabilities, I defined a successful hit as a single, double, triple, or homerun. An out was defined as any hit that was not successful (including fielder's choice and errors). Given the type of pitch and that the pitch outcome was a batted ball, I used Ohtani's batter data to find the proportion of successful hits. Then whether the at-bat resulted in a successful hit or an out was randomly decided according to these probabilities.
+
+To end the at-bat, there are 4 potential outcomes. For starters, if the number of balls increases to 4, the outcome is a walk, which is a successful outcome for the batter and a failed outcome for the pitcher. If the number of strikes increases to 3, the outcome is a strikeout, which is a failed outcome for the batter and a successful outcome for the pitcher.
+
+If the outcome is a hit, and it is a successful hit, it is a successful outcome for the batter and a failed outcome for the pitcher. If it is an unsuccessful hit (an out), it is a failed outcome for the batter and a successful outcome for the pitcher.
+
+As long as none of these absorbing/terminating states/events have occurred yet in an at-bat, the simulated at-bat will continue with a new pitch.
+
+# Results
+
+After running 1000 iterations of simulated at-bats, I used the proportion of batter successes as a mock representation of Ohtani's On Base Percentage (OBP) against himself. Rerunning the code a few times, it seems to result in a mock OBP of around .350 to .400 each time. Choosing a randomization seed of 217, the simulated OBP is .384. For comparison, Ohtani had an overall OBP of .372 in 2021 and a .388 OBP against right-handed pitchers in 2021.
+
+## Limitations
+
+Obviously this simulation represents a simplified imitation of Ohtani vs. Ohtani. We know that pitchers change their pitching based on the batter, but we don't know how Ohtani would pitch to Ohtani. We also know that batters approach batting differently and with different expectations against different pitchers, but we don't know how Ohtani bats against Ohtani. As they are the same person and could thus never actually face each other, there is no data to base their pitching/batting tendencies against each other off of. But since this is an attempt to simulate the impossible, the data used was intended to get close to predicting what might happen if they faced each other by using Ohtani pitching against players similar to Ohtani as a batter and Ohtani batting against pitches and pitchers similar to Ohtani as a pitcher as proxies for the real situation we are interested in. This is an inherently flawed method, but sufficient for our simplified mock at-bats.
+
+Other limitations include additional simplifications made during the at-bat simulation. For example, there is no data for Ohtani throwing anything other than a 4-Seam Fastball on a 3-0 count. This is not to say he would never throw anything else, but rather that he hasn't on the few occasions that he has pitched with this count against left-handed batters. The effect of small sample sizes on probabilities appears in many parts of this simulation. Even though small sample size greatly affect the resulting probabilities, this simulation uses the observed probabilities as absolute and does not attempt to mitigate these potential inaccuracies. 
+
+This simulation also does not distinguish events like hit by pitches, caught foul balls, or other rare but potential events. It also doesn't take into account any environmental factors that might influence this imagined/theoretical match-up like the skill of the defense, the ballpark, or the weather. It also does not account for the human error of calling a strike. In this simulation, the probability of a pitch being a strike is not based on the physical location of the pitch but rather the call made about the pitch. By doing this, I attempt to capture the variance and error in calls made by umpires on called strikes.
+
+Similarly, this simulation does not directly account for the possibility of swinging at pitch outside the strikezone. In this simulation, if a pitch is not a strike, it is always recorded as a ball. This admittedly inflates the probability of a walk. On the other hand, the outcomes of Ohtani swinging at balls are incorporated into the strikes/batted ball events given the pitch is 'in the strikezone'. Swinging at pitches outside the strikezone increases the probability of swinging strikes and weak contact. Rather than handle these two flaws separately, this simulation simply leaves them to roughly balance each other out. It is not an ideal solution, but is a side-effect of the simplification of an at-bat.
+
+
+## Future Work
+
+In the future, I would like to include data from 2022 in this simulation. Doing so would incorporated more recent data and would add in the Sinker, which Ohtani began throwing during the 2022 season. Including the 2022 season in addition to the 2021 year might make the simulation more accurate, but I would also be interested in how the results would compare between just running the simulation on 2021 data vs just running it on 2022 data.
+
+I would also like to spend more time better accounting for many of the simplifications made such as how I accounted for swinging at pitches outside the strikezone, hit by pitches, etc.
+
+Additionally, I think it would be interesting to adjust the code to simulate other stats like wOBA, weighting for different at-bat outcomes. Also, it might be interesting expand this simulation to the inning or game level where I could simulate the expected runs that a team of all Ohtani batters might earn against Ohtani as a pitcher.

@@ -1,0 +1,248 @@
+---
+title: "Homework 2: Bowling Simulation Part 2"
+author: "Amber Potter"
+date: "9/22/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Bowling Simulation Version 2
+
+### Comments (README Portion)
+
+I will be the first to admit that I decided the possible configurations of remaining pins in a very crude way. However, it helped me to imagine likely scenarios, ball courses, and pin scattering to help guide these configurations. In general, I completely eliminated the possibility of unlikely configurations and simplified the game to only the more likely pin configurations. Many of the configurations that I have allowed have pins next too or adjacent from each other being either knocked down or remaining up together, except for the allowance of common splits like the 7/10 split, etc. The configurations also guarantee that middle pins are not knocked down without front exterior pins also being knocked down. The number of pins knocked down is still decided by a uniform distribution. However, once this is decided, the configuration of the remaining pins is decided randomly out of the options I have allowed (for the specified number of pins) by another uniform distribution.
+
+
+After the first roll is made, the probabilities of the remaining pins being knocked down on the second roll is influenced by the configuration remaining. From my own bowling experience, I know it is easier for me to hit many of the remaining pins when they are not horizontally spread. To categorize this horizontal spread and the distance between remaining pins, I decided to group the pins into 3 groups. The left group includes pins 2, 4, 7, and 8. The right group includes 3, 6, 9, and 10. The middle group includes 1, 2, 3, 5, 8, and 9. Borrowing from my overly simple assumption that the first roll (when all 10 pins are standing) is dictated by a uniform distribution, I decided that if the remaining pins are in only one group or are in side by side groups, that the number of pins on roll 2 would also be decided randomly using another uniform distribution. If, however, the pins are only found in the left and right group, and not the middle, my method for calculating the number of pins gets slightly more complicated. Since these configurations include many of the difficult splits, it is unlikely that an amateur bowler would get the spare. Instead, I have set it up so that the bowler hypothetically decides to aim for the side that has the most pins, or simply picks either side if both sides have the same number of pins. This aims to capture that they are prioritizing trying to knock down the larger cluster of pins on either the left or right side, and disregarding the other side. The number of pins knocked down from the chosen side is also decided randomly based on a uniform distribution (from 0 to the number of pins on the chosen side).
+
+
+
+
+### Packages
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+library(knitr)
+```
+
+### Set Seed Option
+
+```{r}
+#set.seed(21)
+```
+
+
+### Possible Pins Remaining
+
+```{r}
+pins_remaining_1 <- c("7", "10")
+
+pins_remaining_2 <- c("7,10", "7,8", "4,7", "9,10", "6,10", "1,2", "1,3", "6,7", "4,10")
+
+pins_remaining_3 <-c("4,7,8", "6,9,10", "6,7,10", "4,7,10", "1,2,4", "1,3,6")
+
+pins_remaining_4 <- c("2,4,7,8", "3,6,9,10", "1,2,3,4", "1,3,6,10", "1,2,4,7", "4,7,8,9", "6,8,9,10", "1,2,3,6")
+
+pins_remaining_5 <- c("1,2,4,7,8", "1,3,6,9,10", "2,4,5,7,8", "3,5,6,9,10", "4,5,7,8,9", "5,6,8,9,10", "1,2,3,5,6", "1,2,3,4,5")
+
+pins_remaining_6 <- c("1,3,5,6,9,10", "1,2,4,5,7,8", "4,5,7,8,9,10", "5,6,7,8,9,10", "2,4,5,7,8,9", "3,5,6,8,9,10", "1,2,3,4,5,7", "1,2,3,5,6,10", "1,2,3,4,5,6")
+
+pins_remaining_7 <- c("1,2,3,5,6,9,10", "1,2,3,4,5,7,8", "1,2,3,4,5,6,10", "1,2,3,4,5,6,7", "3,5,6,7,8,9,10", "2,4,5,7,8,9,10")
+  
+pins_remaining_8 <- c("1,2,3,5,6,8,9,10", "1,2,3,4,5,7,8,9", "3,4,5,6,7,8,9,10", "2,4,5,6,7,8,9,10", "1,2,3,4,5,6,7,8", "1,2,3,4,5,6,9,10")
+
+pins_remaining_9 <- c("1,2,3,4,5,6,8,9,10", "1,2,3,4,5,6,7,8,9")
+  
+pins_remaining_10 <- "1,2,3,4,5,6,7,8,9,10"
+```
+
+
+### Function for Single Iteration of Score Simulation
+
+
+```{r message = FALSE, warning = FALSE}
+sim_1000 <- function() {
+  frame <- as_tibble(seq(1,10)) %>%
+  rename(frame = value)
+
+first_roll <- frame %>%
+  mutate(roll_1_pins_down = sample(0:10, 10, replace=TRUE))
+
+roll_1_pins_down_vector <- first_roll$roll_1_pins_down
+
+roll_2_pins_down_vector <- c()
+
+first_roll <- first_roll %>%
+  mutate(pins_remaining_string = case_when(roll_1_pins_down == 0 ~ pins_remaining_10,
+                                    roll_1_pins_down == 1 ~ pins_remaining_9[sample(1:length(pins_remaining_9), 1)],
+                                    roll_1_pins_down == 2 ~ pins_remaining_8[sample(1:length(pins_remaining_8), 1)],
+                                    roll_1_pins_down == 3 ~ pins_remaining_7[sample(1:length(pins_remaining_7), 1)],
+                                    roll_1_pins_down == 4 ~ pins_remaining_6[sample(1:length(pins_remaining_6), 1)],
+                                    roll_1_pins_down == 5 ~ pins_remaining_5[sample(1:length(pins_remaining_5), 1)],
+                                    roll_1_pins_down == 6 ~ pins_remaining_4[sample(1:length(pins_remaining_4), 1)],
+                                    roll_1_pins_down == 7 ~ pins_remaining_3[sample(1:length(pins_remaining_3), 1)],
+                                    roll_1_pins_down == 8 ~ pins_remaining_2[sample(1:length(pins_remaining_2), 1)],
+                                    roll_1_pins_down == 9 ~ pins_remaining_1[sample(1:length(pins_remaining_1), 1)],
+                                    roll_1_pins_down == 10 ~ "")) %>%
+  mutate(pins_remaining = strsplit(pins_remaining_string, ','))
+
+
+  
+
+
+
+for(i in 1:10){
+  if(any(unlist(first_roll$pins_remaining[i])) %in% c("2", "4", "7", "8") &
+      any(unlist(first_roll$pins_remaining[i])) %in% c("3", "6", "9", "10") & 
+      any(unlist(first_roll$pins_remaining[i])) %in% c("1", "2", "3", "5", "8", "9") == FALSE){
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) > sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")), 1))
+    }
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) < sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")), 1))
+      }
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) == sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")), 1))
+      }
+  }
+  else{
+    roll_2_pins_down_vector <- append(roll_2_pins_down_vector, 
+                             sample(0:(10 - first_roll$roll_1_pins_down[i]), 1))
+  }
+}
+
+second_roll <- first_roll %>%
+ mutate(roll_2_pins_down = case_when(roll_1_pins_down != 10 
+                                     ~ roll_2_pins_down_vector[frame],
+                                     roll_1_pins_down == 10 ~ NA_integer_))
+
+third_roll <- second_roll %>%
+  mutate(roll_2_pins_down = case_when(frame == 10 & roll_1_pins_down == 10 
+                                           ~ sample(0:10, 1),
+                                      TRUE ~ roll_2_pins_down),
+         roll_3_pins_down = case_when(frame == 10 & roll_1_pins_down == 10 & roll_2_pins_down == 10 
+                                           ~ sample(0:10, 1),
+                                      frame == 10 & roll_1_pins_down == 10 & roll_2_pins_down != 10 ~ sample(0:(10 - roll_2_pins_down[10]), 1),
+                                      frame == 10 & roll_1_pins_down + roll_2_pins_down == 10 ~ sample(0:10, 1),
+                                      TRUE ~ NA_integer_))
+
+
+
+roll_1_pins_down_vector <- third_roll$roll_1_pins_down
+roll_2_pins_down_vector <- third_roll$roll_2_pins_down
+roll_3_pins_down_vector <- third_roll$roll_3_pins_down
+
+frame_interpretations <- third_roll %>%
+  mutate(frame_interpretation = case_when(roll_1_pins_down == 10 ~ "STRIKE",
+                                          roll_1_pins_down + roll_2_pins_down == 10 ~ "SPARE",
+                                          TRUE ~ "OPEN"))
+
+points <- frame_interpretations %>%
+  mutate(frame_points = case_when(frame_interpretation == "OPEN" ~ as.numeric(roll_1_pins_down_vector[frame] + roll_2_pins_down_vector[frame]), # open
+                      
+                                  frame != 10 & frame_interpretation == "SPARE" ~ 10 + lead(roll_1_pins_down, order_by = frame, n = 1), # spare before 10th frame
+                                  
+                                  frame == 10 & frame_interpretation == "SPARE" ~ 10 + roll_3_pins_down_vector[frame], # spare on 10th frame
+                                  
+                                  frame < 9 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) == "STRIKE" ~ 20 + lead(roll_1_pins_down, order_by = frame, n = 2), # 2 strikes in a row before 9th
+                                  
+                                  frame != 10 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) != "STRIKE" ~ 10 + lead(roll_1_pins_down, order_by = frame, n = 1) + lead(roll_2_pins_down, order_by = frame, n = 1), # strike before 10th frame
+                                  
+                                  frame == 9 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) == "STRIKE" ~ 20 + lead(roll_2_pins_down, order_by = frame, n = 1), # 2 strikes in a row 9th
+                                  
+                                  frame = 10 & frame_interpretation == "STRIKE" ~ 10 + roll_2_pins_down_vector[10] + roll_3_pins_down_vector[10], # 10th frame strike
+                                  ))
+total_score <- points %>%
+  summarize(total_points = sum(frame_points)) %>%
+  select(total_points) %>%
+  pull()
+
+return(total_score) 
+
+}
+
+```
+
+### Repeat to Get 1000 Scores
+
+```{r message = FALSE, warning = FALSE}
+scores <- c()
+
+for(i in 1:1000){
+  scores <- append(scores, sim_1000())
+}
+```
+
+### Histogram of Outcomes
+
+```{r}
+scores_tibble <- as_tibble(scores)
+
+ggplot(scores_tibble, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "gray", color = "black") +
+  labs(title = "Distribution of 1000 Bowling Score Simulations",
+       x = "Bowling Game Score",
+       y = "Frequency") +
+  theme_minimal()
+  
+```
+
+
+
+### Covariance Matrix
+
+Because of how I determined potential configurations of remaining pins, the non-diagonal values of the covariance matrix were tedious to calculate. Below I have calculated the diagonal values as p * (1-p) for each of the pins. For the other matrix values, I would find the cov(X,Y) by finding (E(y | x = 1) - E(y | x = 0))p(1 - p) for each pair of numbered pins.
+
+
+
+### Probabilities Given Pin is Knocked Down
+
+```{r}
+prob_pin_1 <- 1 - (1/11*(0 + 0/2 + 2/9 + 2/6 + 4/7 + 4/8 + 5/9 + 4/6 + 4/6 + 2/2 + 1/1))
+prob_pin_2 <- 1 - (1/11*(0 + 0/2 + 1/9 + 1/6 + 4/7 + 4/8 + 5/9 + 5/6 + 5/6 + 2/2 + 1/1))
+prob_pin_3 <- 1 - (1/11*(0 + 0/2 + 1/9 + 1/6 + 4/7 + 4/8 + 5/9 + 5/6 + 5/6 + 2/2 + 1/1))
+prob_pin_4 <- 1 - (1/11*(0 + 0/2 + 2/9 + 3/6 + 4/7 + 4/8 + 5/9 + 4/6 + 5/6 + 2/2 + 1/1))
+prob_pin_5 <- 1 - (1/11*(0 + 0/2 + 0/9 + 0/6 + 0/7 + 6/8 + 9/9 + 6/6 + 6/6 + 2/2 + 1/1))
+prob_pin_6 <- 1 - (1/11*(0 + 0/2 + 2/9 + 3/6 + 4/7 + 4/8 + 5/9 + 4/6 + 5/6 + 2/2 + 1/1))
+prob_pin_7 <- 1 - (1/11*(0 + 1/2 + 4/9 + 3/6 + 3/7 + 3/8 + 5/9 + 4/6 + 4/6 + 1/2 + 1/1))
+prob_pin_8 <- 1 - (1/11*(0 + 0/2 + 1/9 + 1/6 + 3/7 + 4/8 + 5/9 + 3/6 + 5/6 + 2/2 + 1/1))
+prob_pin_9 <- 1 - (1/11*(0 + 0/2 + 1/9 + 1/6 + 3/7 + 4/8 + 5/9 + 3/6 + 5/6 + 2/2 + 1/1))
+prob_pin_10 <- 1 - (1/11*(0 + 1/2 + 4/9 + 3/6 + 3/7 + 3/8 + 5/9 + 4/6 + 4/6 + 1/2 + 1/1))
+```
+
+### Diagonal
+
+```{r}
+c(prob_pin_1*(1-prob_pin_1), prob_pin_2*(1-prob_pin_2), prob_pin_3*(1-prob_pin_3), prob_pin_4*(1-prob_pin_4), prob_pin_5*(1-prob_pin_5), prob_pin_6*(1-prob_pin_6), prob_pin_7*(1-prob_pin_7), prob_pin_8*(1-prob_pin_8), prob_pin_9*(1-prob_pin_9), prob_pin_10*(1-prob_pin_10))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

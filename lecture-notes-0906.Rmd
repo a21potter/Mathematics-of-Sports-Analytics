@@ -1,0 +1,165 @@
+---
+title: "lecture-notes-0906"
+author: "Amber Potter"
+date: "9/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Baseball Random events
+
+- list of possible at bat events, each assigned a probability mass function and a cumulative density function
+
+
+
+## R Example
+
+Notes for MATH 390, Session 03 - "Linear Weights" Part 1
+
+In this session, we use Linear Regression to estimate the value of different
+types of offensive baseball results: singles, doubles, triples, home runs, steals, walks, and being caught stealing. We use a pretty extensive baseball database and, for these exercises, perform all of the data manipulations in R.
+
+First we download the Lahman dataset in R and set up the dataframes with a library call:
+Install a useful library for dataframe manipulation:
+
+```{r}
+library(baseballr)
+library(Lahman)
+library(tidyverse)
+```
+
+There are three tables that are of interest to us so far, Batting, Teams, and People. Take a look at the header of each of these tables using the head, tail or slice command. Head gives you the first n rows, where n is a parameter the user enters. Likewise, tail gives you the last n rows. Slice lets you see and subset of rows. Here are ways to use the commands:
+
+```{r}
+head(Batting, 5) #first 5 rows
+
+Batting %>% 
+  head(5) #same output, illustrates the use of the %>% piping functionality that is a part of the tidyverse package
+Teams %>% 
+  slice(6:9)
+```
+
+Notice that each of these has output that includes the column headers.
+
+
+Each of these tables has data from the beginning of baseball records, 1871. For the pupose of this class, we do not need to go that far back in time. The following commands give you versions of the files from only the last decade:
+
+```{r}
+BattingRecent <- Batting %>% 
+  filter(yearID > 2009, yearID < 2012)
+
+TeamsRecent <- Teams %>% 
+  filter(yearID > 2009, yearID < 2012)
+
+PeopleRecent <- People %>% 
+  filter(finalGame>"2010")
+```
+
+Note that Batting and Teams both have a yearID column, and the years in this column are integers. 
+
+The People table has the date of the game that each person played and this is stored as a string. If the player was in a game in 2010 or later then their activities impacted elements of both BattingRecent and TeamsRecent.
+
+5. Notice that the BattingRecent and TeamsRecent tables has total hits (in the H column) and expresses walks as both base-on-balls (BB) and hit-by-pitch (HBP). So we add two extra columns for singles (X1B) and WALKS in each of those tables:
+```{r}
+BattingRecent <- BattingRecent %>% 
+  mutate(X1B = H - X2B - X3B - HR,
+         WALKS = BB + HBP)
+
+TeamsRecent <- TeamsRecent %>% 
+  mutate(X1B = H - X2B - X3B - HR,
+         WALKS = BB + HBP)
+```
+
+6. Now we use the built-in Linear Regresson function in R to find the connection between the offensive activities and team scoring, where the scoring for each team and each year represent an outcome. The R function lm() takes as input
+	a) The formula, where the left hand side is the outcome and the right hand side is the set of all input parameters,
+	b) the dataframe
+
+```{r}
+lm(R ~ X1B + X2B + X3B + HR + SB + CS + WALKS, data = TeamsRecent)
+```
+
+This call will provide a linear approximation of the Runs for the season, given the inputs. However, what it does not do is provide any information regarding the significance of each of the input variables. To get this additional information, we first type
+
+```{r}
+lmFit <- lm(R ~ X1B + X2B + X3B + HR + SB + CS + WALKS, data = TeamsRecent)
+```
+
+to store the liner regresson model, and
+
+```{r}
+summary(lmFit) 
+```
+
+to reveal the additional information. This summary produces a list of information: 
+  the fuction call,
+	statistics about the residuals (distances between the predicted values and the actual ones),
+	a coefficient matrix, containg weights in the first column and relevance information in the remaining columns, and
+	significance codes from the last column of the coefficient matrix
+
+Of note in our example is the fact that the caught-stealing input is not significant and should be left out of the model.
+
+Rerun the model with CS left out. 
+
+```{r}
+lmFit <- lm(R ~ X1B + X2B + X3B + HR + SB + WALKS, data = TeamsRecent)
+summary(lmFit)
+```
+	
+Here's some things to notice and try to explain:
+	  HRs are more valuable than 1 point.
+		The impact of walks is greater than the impact of stolen bases but less than the impact of singles.
+
+We can capture the coefficients to use to estimate runs given just the input:
+
+```{r}
+coeffMatrix <- summary(lmFit)$coefficients 
+```
+
+Note that each element of the summary list can be referenced using the notation list$element
+
+Look at coeffMatrix by just typing coeffMatrix in the command line:
+
+```{r}	
+coeffMatrix  
+```
+
+The rows of this matrix can be referenced by the names of the rows, which correspond with the input variable. Likewise, the columns can be referenced by their names as well. So we can type
+
+```{r}	
+coeffMatrix["X1B","Estimate"]  
+```
+to see the coefficient of the singles variable. Instead, for brevity, we'll use numbers for the columns (plus, we're only using the first column). In fact, well create a vector that's copies the first column of the matrix:
+
+```{r}
+coeff = coeffMatrix[,1] 
+```
+
+Leaving the first element within the square brackets blank means that you 
+	want to keep all of the values in the column.
+Likewise, coeffMatrix[2,] yields all of the information about the X1B variable.
+
+The following allows us to create a new column in the TeamsRecent table, using the coefficients to provide as estimate of the runs for each year/team:
+
+```{r}
+TeamsRecent <- TeamsRecent %>% 
+  mutate(ExpRuns = coeff[1] + coeff["X1B"] * X1B + coeff["X2B"] * X2B + 
+           coeff["X3B"] * X3B + coeff["HR"] * HR +coeff["WALKS"] * WALKS + 
+           coeff["SB"] * SB )
+```
+
+	We can create another column to compare the expected runs values with the actual runs:
+```{r}
+	TeamsRecent %>% mutate(ExpRunsError = abs(R - ExpRuns)) -> TeamsRecent
+```
+	To give these errors some context, we express them as factions of the actual runs:
+```{r}
+	TeamsRecent %>% mutate(ExpRunsErrorFrac =  ExpRunsError/R) -> TeamsRecent
+```
+	Lastly, we can compute the average fractional error:
+```{r}
+	mean(TeamsRecent$ExpRunsErrorFrac)
+```
+	Note that we used the $ to extract the new column from the dataset and then the mean function acts on a vector of numbers. 

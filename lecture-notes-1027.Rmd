@@ -1,0 +1,73 @@
+---
+title: "lecture-notes-1027"
+author: "Amber Potter"
+date: "10/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+state
+
+    relative score            x
+    time remaining            t
+    
+    
+Plinko description
+    if n is large enough -> normal distribution of falling into bins
+    
+  X is the number of left turns out of n trials
+  X ~ Binomial(n, .5)
+  P(X = k) = (n choose k) * $p^k (1-p)^{n-k}$
+    
+need # of possessions N(t) ~ Poisson($\lambda$)
+
+(relative) scores in each possession $X_i$ ~ i.i.d
+
+  E[N(t)] = $\lambda$t
+  Variance[N(t)] = $\lambda$t
+
+$X^n$ ~ Binomial(n, p)
+
+  $X^n$ ~ Normal(np, np(1-p))     standard deviation $np + \sqrt{np(1-p)}$
+  
+  
+$x + \sum_{i = 1}^{N(t)} X_i$
+
+$E[\sum_{i = 1}^{N(t)} X_i]$      ** we will treat this as independent, although this is not necessarily true at all
+
+$E[\sum_{i = 1}^{N(t)} X_i] = \lambda t E[X_1]$
+
+Law of Total Variation
+
+  Var(Y) = Var(e[Y|Z]) + E[Var(Y|Z)]    -Z is the size of the Poisson process
+  
+  Compound PP (Poisson Process?)
+  
+  $Y = \sum_{i = 1}^{N(t)} X_i$
+  
+  $Var(N(t)EX_1) + E(Var(N(t)X_1))$  ??? Otis may have messed up
+  
+  $\lambda t (EX_1)^2 + \lambda t Var X_1$   ??? Otis may have messed up
+  
+  Correct answer: $\lambda t (EX_1)^2$
+  
+  - Note: the longer time goes, the larger the variance gets
+  
+  
+  
+  
+  ...
+  
+  
+Matrix w/ team B as rows and team A as columns
+  
+
+   0 1 2 3 4 
+0  0 1 2 3 4     
+1 -1 0 1 2 3
+2 -2-1 0 1 2
+3 -3-2-1 0 1
+4 -4-3-2-1 0

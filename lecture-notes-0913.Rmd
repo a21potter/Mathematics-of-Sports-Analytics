@@ -1,0 +1,68 @@
+---
+title: "simulating-simplified-baseball"
+author: "Amber Potter"
+date: "9/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+States: _ _ _
+
+First state: Outs, possible, 0, 1, 2
+
+Second state: 1B, possible, 0, 1
+
+Third state: 2B, possible, 0, 1
+
+First at-bat state: 000, at bat event: single, score this at bat: 0, total score: 0
+
+Next at-bat state: 010 at bat event: single, score this at bat: 0, total score: 0
+
+Next at-bat state: 011 at bat event: single, score this at bat:1, total score: 1
+
+Next at-bat state: 011 at bat event: SO, score this at bat:0, total score: 1
+
+Next at-bat state: 111 at bat event: SO, score this at bat:0, total score: 1
+
+Next at-bat state: 211 at bat event: SO, score this at bat:0, total score: 1
+
+
+
+++++++++++++
+
+Game Ledger:
+
+State: 000, # of instances of state: 1, total points: 1
+State: 010, # of instances of state: 1, total points: 1
+State: 011, # of instances of state: 2, total points 1
+State: 111, # of instances of state: 1, total points 0
+
+
+
+++++++++++++
+
+Another example:
+
+000 AB: single, AB points: 0
+
+010 AB: HR, AB points: 2
+
+000 AB: single, AB points: 
+
+010 AB: HR, AB points: 2
+
+000 AB: HR, AB points: 1
+
+000 AB: single, AB points: 
+
+010 AB: single, AB points:
+
+011 AB: HR, AB points: 3
+
+000 AB:
+
+
+* total points is number of all the points that the state led to in the inning (total inning points - points scored before particular at bat*

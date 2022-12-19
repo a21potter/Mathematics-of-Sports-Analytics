@@ -1,0 +1,566 @@
+---
+title: "MATH 390 HW: Baseball Expected Points"
+author: "Amber Potter"
+date: "10/23/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Packages
+
+```{r warning = FALSE, message = FALSE}
+library(tidyverse)
+library(glue)
+library(knitr)
+```
+
+## Probabilities and States
+
+```{r}
+# probabilities
+prob_single <- 0.2
+prob_double <- 0.15
+prob_triple <- 0.05
+prob_HR <- 0.1
+prob_SO <- 0.3 
+prob_BB <- 0.1
+prob_vector <- c(prob_single, prob_double, prob_triple, prob_HR, prob_SO, prob_BB)
+
+# all possible states (except terminating state: 3000)
+states <- c("0000", "0001", "0010", "0100", "0011", "0110", "0101", "0111", "1000", "1001", "1010", "1100", "1011", "1110", "1101", "1111", "2000", "2001", "2010", "2100", "2011", "2110", "2101", "2111")
+```
+
+## Part 1: Simulation
+
+### Half Inning Simulation Function
+
+```{r}
+# loop while half inning is still going, stops at state 3000
+half_inning_sim <- function()
+{
+  # start with no outs and no one on
+  current_outs <- "0"
+  current_runners_on <- "000"
+  current_state <- "0000"
+  
+  # initialize empty vectors to keep track of what happens
+  sim_states_vector <- c()
+  sim_outs_vector <- c()
+  sim_at_bat_outcomes_vector <- c()
+  sim_runs_vector <- c()
+  
+  # initialize runs directly from at bat
+  direct_at_bat_runs <- 0
+  
+  # keep track of runs scored before at bat
+  sim_previous_runs_vector <- c()
+
+
+
+  while(current_outs < 3)
+  {
+    sim_states_vector <- append(sim_states_vector, current_state)
+    current_runners_on <- substr(current_state, 2, 4)
+    at_bat_outcome <- sample(c("single", "double", "triple", "HR", "SO", "BB"), 
+                         size = 1, 
+                         prob = prob_vector)
+    sim_at_bat_outcomes_vector <- append(sim_at_bat_outcomes_vector, at_bat_outcome)
+    # update runs scored previously
+    sim_previous_runs_vector <- append(sim_previous_runs_vector, sum(sim_runs_vector))
+    
+    # if at bat outcomeis a single
+    if (at_bat_outcome == "single")
+    {
+      # same number of outs as before
+      current_outs <- current_outs
+      # no one on
+      if(current_runners_on == "000")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "001")
+      }
+      # one runner on
+      else if(current_runners_on == "001")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "011")
+      }
+      else if(current_runners_on == "010")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "101")
+      }
+      else if(current_runners_on == "100")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "001")
+      }
+      # two runners on
+      else if(current_runners_on == "011")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "111")
+      }
+      else if(current_runners_on == "110")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "101")
+      }
+      else if(current_runners_on == "101") 
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "011")
+      }
+      # bases loaded
+      else if(current_runners_on == "111")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "111")
+      }
+    }
+    
+    # if at bat outcome is a double
+    else if(at_bat_outcome == "double")
+    {
+      # same number of outs as before
+      current_outs <- current_outs
+      # no one on
+      if(current_runners_on == "000")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "010")
+      }
+      # one runner on
+      else if(current_runners_on == "001")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "110")
+      }
+      else if(current_runners_on == "010")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "010")
+      }
+      else if(current_runners_on == "100") 
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "010")
+      }
+      # two runners on
+      else if(current_runners_on == "011") 
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "110")
+      }
+      else if(current_runners_on == "110")
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "010")
+      }
+      else if(current_runners_on == "101")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "110")
+      }
+      # bases loaded
+      else if(current_runners_on == "111")
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "110")
+      }
+    }
+    
+    # if at bat outcome is a triple
+    else if(at_bat_outcome == "triple")
+    {
+      # same number of outs as before
+      current_outs <- current_outs
+      # no one on
+      if(current_runners_on == "000")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "100")
+      }
+      # one runner on
+      else if(current_runners_on == "001")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "100")
+      }
+      else if(current_runners_on == "010")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "100")
+      }
+      else if(current_runners_on == "100") 
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "100")
+      }
+      # two runners on
+      else if(current_runners_on == "011") 
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "100")
+      }
+      else if(current_runners_on == "110")
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "100")
+      }
+      else if(current_runners_on == "101")
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "100")
+      }
+      # bases loaded
+      else if(current_runners_on == "111")
+      {
+        direct_at_bat_runs <- 3
+        current_state <- glue(current_outs, "100")
+      }
+    }
+    
+    # if at bat outcome is a HR
+    else if(at_bat_outcome == "HR")
+    {
+      # same number of outs as before
+      current_outs <- current_outs
+      # no one on
+      if(current_runners_on == "000")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "000")
+      }
+      # one runner on
+      else if(current_runners_on == "001")
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "000")
+      }
+      else if(current_runners_on == "010")
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "000")
+      }
+      else if(current_runners_on == "100") 
+      {
+        direct_at_bat_runs <- 2
+        current_state <- glue(current_outs, "000")
+      }
+      # two runners on
+      else if(current_runners_on == "011") 
+      {
+        direct_at_bat_runs <- 3
+        current_state <- glue(current_outs, "000")
+      }
+      else if(current_runners_on == "110")
+      {
+        direct_at_bat_runs <- 3
+        current_state <- glue(current_outs, "000")
+      }
+      else if(current_runners_on == "101")
+      {
+        direct_at_bat_runs <- 3
+        current_state <- glue(current_outs, "000")
+      }
+      # bases loaded
+      else if(current_runners_on == "111")
+      {
+        direct_at_bat_runs <- 4
+        current_state <- glue(current_outs, "000")
+      }
+    }
+    
+    # if at bat outcome is a SO
+    else if(at_bat_outcome == "SO")
+    {
+      # outs increase by one
+      current_outs <- as.character(as.integer(current_outs) + 1)
+      # no one on
+      if(current_runners_on == "000")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "000")
+      }
+      # one runner on
+      else if(current_runners_on == "001")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "001")
+      }
+      else if(current_runners_on == "010")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "010")
+      }
+      else if(current_runners_on == "100") 
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "100")
+      }
+      # two runners on
+      else if(current_runners_on == "011") 
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "011")
+      }
+      else if(current_runners_on == "110")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "110")
+      }
+      else if(current_runners_on == "101")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "101")
+      }
+      # bases loaded
+      else if(current_runners_on == "111")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "111")
+      }
+    }
+    
+    # if at bat outcomeis a BB
+    if (at_bat_outcome == "BB")
+    {
+      # same number of outs as before
+      current_outs <- current_outs
+      # no one on
+      if(current_runners_on == "000")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "001")
+      }
+      # one runner on
+      else if(current_runners_on == "001")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "011")
+      }
+      else if(current_runners_on == "010")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "011")
+      }
+      else if(current_runners_on == "100")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "101")
+      }
+      # two runners on
+      else if(current_runners_on == "011")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "111")
+      }
+      else if(current_runners_on == "110")
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "111")
+      }
+      else if(current_runners_on == "101") 
+      {
+        direct_at_bat_runs <- 0
+        current_state <- glue(current_outs, "111")
+      }
+      # bases loaded
+      else if(current_runners_on == "111")
+      {
+        direct_at_bat_runs <- 1
+        current_state <- glue(current_outs, "111")
+      }
+    }
+    
+    # update vectors keeping track of at bat outs and runs
+    sim_outs_vector <- append(sim_outs_vector, current_outs)
+    sim_runs_vector <- append(sim_runs_vector, direct_at_bat_runs)
+
+    
+    
+  }
+  
+  half_inning_simulation_data <- data.frame(sim_states_vector, 
+                          sim_at_bat_outcomes_vector,
+                          sim_outs_vector,
+                          sim_runs_vector,
+                          sim_previous_runs_vector)
+  half_inning_simulation_data <- half_inning_simulation_data %>%
+    mutate(at_bat_runs_contributed = sum(sim_runs_vector) - sim_previous_runs_vector) 
+  
+  return(half_inning_simulation_data)
+}
+```
+
+## Repeated Simulations
+
+```{r}
+# initializing table for all repeated simulations
+simulation_data <- data.frame()
+for (i in 1:1000) 
+{
+  temp_half_inning_data <- half_inning_sim()
+  simulation_data <- rbind(simulation_data, temp_half_inning_data)
+}
+
+# calculating expected runs from simulated data
+simulated_expected_runs <- simulation_data %>% 
+  group_by(sim_states_vector) %>% 
+  summarize(sim_state_times_visited = n(), 
+            sim_average_immediate_runs = mean(sim_runs_vector), 
+            #runs_onward = sum(runs_onward), 
+            sim_expected_runs = sum(at_bat_runs_contributed)/sim_state_times_visited) %>%
+  select(sim_states_vector, sim_expected_runs)
+```
+
+## Part 2: Matrix Approach
+
+```{r}
+# probabilities
+prob_single <- 0.2
+prob_double <- 0.15
+prob_triple <- 0.05
+prob_HR <- 0.1
+prob_SO <- 0.3 
+prob_BB <- 0.1
+prob_vector <- c(prob_single, prob_double, prob_triple, prob_HR, prob_SO, prob_BB)
+
+
+# transition vectors
+vector_0000 <- c(prob_HR,prob_single+prob_BB,prob_double,prob_triple,0,0,0,0,prob_SO,rep(0,15))
+vector_0001 <- c(prob_HR,0,0,prob_triple,prob_single+prob_BB,0,prob_double,0,0,prob_SO,rep(0,14))
+vector_0010 <- c(prob_HR,0,prob_double,prob_triple,prob_BB,0,prob_single,0,0,0,prob_SO,rep(0,13))
+vector_0100 <- c(prob_HR,prob_single,prob_double,prob_triple,0,0,prob_BB,0,0,0,0,prob_SO,rep(0,12))
+vector_0011 <- c(prob_HR,0,0,prob_triple,0,0,0,prob_single+prob_BB,0,0,0,0,prob_SO,rep(0,11))
+vector_0110 <- c(prob_HR,0,prob_double,prob_triple,0,0,prob_single,prob_BB, rep(0,5),prob_SO,rep(0,10))
+vector_0101 <- c(prob_HR,0,0,prob_triple,prob_single,prob_double,0,prob_BB,rep(0,6),prob_SO,rep(0,9))
+vector_0111 <- c(prob_HR, 0,0,prob_triple,0,prob_double, 0, prob_single+prob_BB, rep(0,7),prob_SO,rep(0,8))
+vector_1000 <- c(rep(0,8),prob_HR,prob_single+prob_BB,prob_double,prob_triple,0,0,0,0,prob_SO,rep(0,7))
+vector_1001 <- c(rep(0,8),prob_HR,0,0,prob_triple,prob_single+prob_BB,prob_double,0,0,0,prob_SO,rep(0,6))
+vector_1010 <- c(rep(0,8),prob_HR,0,prob_double,prob_triple,prob_BB,0,prob_single,0,0,0,prob_SO,rep(0,5))
+vector_1100 <- c(rep(0,8),prob_HR,prob_single,prob_double,prob_triple,0,0,prob_BB,0,0,0,0,prob_SO,0,0,0,0)
+vector_1011 <- c(rep(0,8),prob_HR,0,0,prob_triple,0,prob_double,0,prob_single+prob_BB,0,0,0,0,prob_SO,0,0,0)
+vector_1110 <- c(rep(0,8),prob_HR,0,prob_double,prob_triple,0,0,prob_single,prob_BB,rep(0,5),prob_SO,0,0)
+vector_1101 <- c(rep(0,8),prob_HR,0,0,prob_triple,prob_single,prob_double,0,prob_BB,rep(0,6),prob_SO,0)
+vector_1111 <- c(rep(0,8),prob_HR,0,0,prob_triple,0,prob_double,0,prob_single+prob_BB,rep(0,7),prob_SO)
+vector_2000 <- c(rep(0,16),prob_HR,prob_single+prob_BB,prob_double,prob_triple,0,0,0,0)
+vector_2001 <- c(rep(0,16),prob_HR,0,0,prob_triple,prob_single+prob_BB,prob_double,0,0)
+vector_2010 <- c(rep(0,16),prob_HR,0,prob_double,prob_triple,prob_BB,0,prob_single,0)
+vector_2100 <- c(rep(0,16),prob_HR,prob_single,prob_double,prob_triple,0,0,prob_BB,0)
+vector_2011 <- c(rep(0,16),prob_HR,0,0,prob_triple,0,prob_double,0,prob_single+prob_BB)
+vector_2110 <- c(rep(0,16),prob_HR,0,prob_double,prob_triple,0,0,prob_single,prob_BB)
+vector_2101 <- c(rep(0,16),prob_HR,0,0,prob_triple,prob_single,prob_double,0,prob_BB)
+vector_2111 <- c(rep(0,16),prob_HR,0,0,prob_triple,0,prob_double,0,prob_single+prob_BB)
+
+
+# transition matrix P
+matrix_P <- rbind(vector_0000, 
+                    vector_0001, 
+                    vector_0010, 
+                    vector_0100, 
+                    vector_0011, 
+                    vector_0110,
+                    vector_0101, 
+                    vector_0111, 
+                    vector_1000, 
+                    vector_1001, 
+                    vector_1010, 
+                    vector_1100, 
+                    vector_1011, 
+                    vector_1110, 
+                    vector_1101, 
+                    vector_1111, 
+                    vector_2000, 
+                    vector_2001, 
+                    vector_2010, 
+                    vector_2100, 
+                    vector_2011, 
+                    vector_2110,
+                    vector_2101,  
+                    vector_2111)
+
+# matrix math
+identity_minus_P <- diag(24) - matrix_P
+inverse_matrix <- solve(identity_minus_P)
+
+# immediate expected run values
+immediate_expected_000 <- 1*prob_HR
+immediate_expected_001 <- 2*prob_HR + 1*prob_triple
+immediate_expected_010 <- 2*prob_HR + 1*prob_triple + 1*prob_double
+immediate_expected_100 <- 2*prob_HR + 1*prob_triple + 1*prob_double + 1*prob_single
+immediate_expected_011 <- 3*prob_HR + 2*prob_triple + 1*prob_double
+immediate_expected_110 <- 3*prob_HR + 2*prob_triple + 2*prob_double + 1*prob_single
+immediate_expected_101 <- 3*prob_HR + 2*prob_triple + 1*prob_double + 1*prob_single
+immediate_expected_111 <- 4*prob_HR + 3*prob_triple + 2*prob_double + 1*prob_single + 1*prob_BB
+
+# immediate expected runs vector
+immediate_expected_runs <- c(immediate_expected_000, 
+                             immediate_expected_001, 
+                             immediate_expected_010, 
+                             immediate_expected_100, 
+                             immediate_expected_011, 
+                             immediate_expected_110, 
+                             immediate_expected_101,
+                             immediate_expected_111, 
+                             immediate_expected_000, 
+                             immediate_expected_001, 
+                             immediate_expected_010, 
+                             immediate_expected_100, 
+                             immediate_expected_011, 
+                             immediate_expected_110, 
+                             immediate_expected_101, 
+                             immediate_expected_111, 
+                             immediate_expected_000, 
+                             immediate_expected_001, 
+                             immediate_expected_010, 
+                             immediate_expected_100, 
+                             immediate_expected_011, 
+                             immediate_expected_110, 
+                             immediate_expected_101, 
+                             immediate_expected_111)
+
+# matrix method expected runs
+matrix_expected_runs <- inverse_matrix %*% immediate_expected_runs
+
+matrix_expected_runs_vector <- matrix_expected_runs[,1]
+
+matrix_method_expected_runs <- data.frame(states, matrix_expected_runs_vector)
+```
+
+## Part 3: Value Iteration
+
+```{r}
+# starting pieces
+a <- immediate_expected_runs
+v_0 <- rep(0, 24)
+
+# initial v_n
+v_n <- a + matrix_P %*% v_0
+
+# repeat using v_n to find v_n_plus_1 until converges
+for (i in 1:1000)
+{
+  v_n <- a + matrix_P %*% v_n
+}
+
+val_it_expected_runs_vector <- as.data.frame(v_n)$V1
+
+value_iteration_expected_runs <- data.frame(states, val_it_expected_runs_vector)
+```
+
+## Final Table with All Three Expected Run Methods
+
+```{r}
+final_table <- simulated_expected_runs %>%
+  left_join(matrix_method_expected_runs, by = c("sim_states_vector" = "states")) %>%
+  left_join(value_iteration_expected_runs, by = c("sim_states_vector" = "states")) %>%
+  kable(col.names = c("States", "Simulated Expected Runs", "Matrix Method Expected Runs", "Value Iteration Expected Runs"))
+
+final_table
+```
+

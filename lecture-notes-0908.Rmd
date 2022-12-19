@@ -1,0 +1,334 @@
+---
+title: "lecture-notes-0908"
+author: "Amber Potter"
+date: "9/8/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Bowling Simulation Part 2
+
+1. Keep track of which pins knocked down
+
+2. Probability of spare depends on configuration of the pins remaining
+
+3. Simulate 1000 times
+
+4. Generate a histogram of outcomes
+
+5. Generaate a covariance matrix for first rolls
+
+
+
+
+E[XY]−(EX)(EY)
+```{r}
+x <- as_tibble(c(prob_pin_1, prob_pin_2, prob_pin_3, prob_pin_4, prob_pin_5, prob_pin_6, prob_pin_7, prob_pin_8, prob_pin_9, prob_pin_10))
+ colnames(x) <- "X"
+y <- as_tibble(c(prob_pin_1, prob_pin_2, prob_pin_3, prob_pin_4, prob_pin_5, prob_pin_6, prob_pin_7, prob_pin_8, prob_pin_9, prob_pin_10))
+ colnames(y) <- "Y"
+data <- full_join(x, y, by = character())
+
+cov(data)
+```
+[𝐸(𝑦∣𝑧=1)−𝐸(𝑦∣𝑧=0)]𝑝(1−𝑝)
+
+```{r}
+prob_pin_1
+
+
+cov_matrix <- matrix(prob_pin_1*(1-prob_pin_1))
+```
+
+
+### Pins Knocked Down
+
+```{r}
+frame <- as_tibble(seq(1,10)) %>%
+  rename(frame = value)
+
+first_roll <- frame %>%
+  mutate(roll_1_pins_down = sample(0:10, 10, replace=TRUE))
+
+roll_1_pins_down_vector <- first_roll$roll_1_pins_down
+
+roll_2_pins_down_vector <- c()
+
+  if(roll_1_pins_down_vector[i] < 5 & 
+all(unlist(first_roll$pins_remaining[i])) %in% c("2", "4", "7", "8") | roll_1_pins_down_vector[i] < 5 &  all(unlist(first_roll$pins_remaining[i])) %in% c("3", "6", "9", "10")){
+    roll_2_pins_down_vector <- append(roll_2_pins_down_vector, 
+                             sample(0:(10 - first_roll$roll_1_pins_down[i]), 1))
+  }
+  if(roll_1_pins_down_vector[i] < 7 & all(unlist(first_roll$pins_remaining[i])) %in% c("1", "2", "3", "5", "8", "9")){
+    roll_2_pins_down_vector <- append(roll_2_pins_down_vector, 
+                             sample(0:(10 - first_roll$roll_1_pins_down[i]), 1))
+  }
+
+
+for(i in 1:10){
+  if(any(unlist(first_roll$pins_remaining[i])) %in% c("2", "4", "7", "8") &
+      any(unlist(first_roll$pins_remaining[i])) %in% c("3", "6", "9", "10") & 
+      any(unlist(first_roll$pins_remaining[i])) %in% c("1", "2", "3", "5", "8", "9") == FALSE){
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) > sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")), 1))
+    }
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) < sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")), 1))
+      }
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) == sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")), 1))
+      }
+  }
+  else{
+    roll_2_pins_down_vector <- append(roll_2_pins_down_vector, 
+                             sample(0:(10 - first_roll$roll_1_pins_down[i]), 1))
+  }
+}
+
+first_roll <- first_roll %>%
+  mutate(pins_remaining_string = case_when(roll_1_pins_down == 0 ~ pins_remaining_10,
+                                    roll_1_pins_down == 1 ~ pins_remaining_9[sample(1:length(pins_remaining_9), 1)],
+                                    roll_1_pins_down == 2 ~ pins_remaining_8[sample(1:length(pins_remaining_8), 1)],
+                                    roll_1_pins_down == 3 ~ pins_remaining_7[sample(1:length(pins_remaining_7), 1)],
+                                    roll_1_pins_down == 4 ~ pins_remaining_6[sample(1:length(pins_remaining_6), 1)],
+                                    roll_1_pins_down == 5 ~ pins_remaining_5[sample(1:length(pins_remaining_5), 1)],
+                                    roll_1_pins_down == 6 ~ pins_remaining_4[sample(1:length(pins_remaining_4), 1)],
+                                    roll_1_pins_down == 7 ~ pins_remaining_3[sample(1:length(pins_remaining_3), 1)],
+                                    roll_1_pins_down == 8 ~ pins_remaining_2[sample(1:length(pins_remaining_2), 1)],
+                                    roll_1_pins_down == 9 ~ pins_remaining_1[sample(1:length(pins_remaining_1), 1)],
+                                    roll_1_pins_down == 10 ~ "")) %>%
+  mutate(pins_remaining = strsplit(pins_remaining_string, ','))
+
+
+  
+second_roll <- first_roll %>%
+ mutate(roll_2_pins_down = case_when(roll_1_pins_down != 10 
+                                     ~ roll_2_pins_down_vector[frame],
+                                     roll_1_pins_down == 10 ~ NA_integer_))
+
+third_roll <- second_roll %>%
+  mutate(roll_2_pins_down = case_when(frame == 10 & roll_1_pins_down == 10 
+                                           ~ sample(0:10, 1),
+                                      TRUE ~ roll_2_pins_down),
+         roll_3_pins_down = case_when(frame == 10 & roll_1_pins_down == 10 & roll_2_pins_down == 10 
+                                           ~ sample(0:10, 1),
+                                      frame == 10 & roll_1_pins_down == 10 & roll_2_pins_down != 10 ~ sample(0:(10 - roll_2_pins_down[10]), 1),
+                                      frame == 10 & roll_1_pins_down + roll_2_pins_down == 10 ~ sample(0:10, 1),
+                                      TRUE ~ NA_integer_))
+
+roll_1_pins_down_vector <- third_roll$roll_1_pins_down
+roll_2_pins_down_vector <- third_roll$roll_2_pins_down
+roll_3_pins_down_vector <- third_roll$roll_3_pins_down
+```
+
+
+```{r}
+firs_roll_numeric <- first_roll$pins_remaining %>%
+  mutate(pins_remaining = as.numeric(unlist(first_roll$pins_remaining)))
+as.numeric(unlist(first_roll$pins_remaining[i]))
+
+for(i in 1:10){
+  count_both <- 0
+  count_x <- 0
+  count_y <- 0
+  temp <- c()
+  for(j in 1:10){
+    if(!(i %in% as.numeric(unlist(first_roll$pins_remaining[i])))){
+      temp <- append(temp, i)
+    }
+  temp <- as.numeric(unlist(first_roll$pins_remaining[i]))
+  if 
+  if (x %in% temp){
+    count_x <- count_x + sum(temp == x)
+  }
+  count_both <- count_both + 
+}
+cov1.1 <- 
+```
+
+### Frame Interpretation
+
+```{r}
+frame_interpretations <- third_roll %>%
+  mutate(frame_interpretation = case_when(roll_1_pins_down == 10 ~ "STRIKE",
+                                          roll_1_pins_down + roll_2_pins_down == 10 ~ "SPARE",
+                                          TRUE ~ "OPEN"))
+```
+
+
+### Frame Points
+
+```{r}
+points <- frame_interpretations %>%
+  mutate(frame_points = case_when(frame_interpretation == "OPEN" ~ as.numeric(roll_1_pins_down_vector[frame] + roll_2_pins_down_vector[frame]), # open
+                      
+                                  frame != 10 & frame_interpretation == "SPARE" ~ 10 + lead(roll_1_pins_down, order_by = frame, n = 1), # spare before 10th frame
+                                  
+                                  frame == 10 & frame_interpretation == "SPARE" ~ 10 + roll_3_pins_down_vector[frame], # spare on 10th frame
+                                  
+                                  frame < 9 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) == "STRIKE" ~ 20 + lead(roll_1_pins_down, order_by = frame, n = 2), # 2 strikes in a row before 9th
+                                  
+                                  frame != 10 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) != "STRIKE" ~ 10 + lead(roll_1_pins_down, order_by = frame, n = 1) + lead(roll_2_pins_down, order_by = frame, n = 1), # strike before 10th frame
+                                  
+                                  frame == 9 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) == "STRIKE" ~ 20 + lead(roll_2_pins_down, order_by = frame, n = 1), # 2 strikes in a row 9th
+                                  
+                                  frame = 10 & frame_interpretation == "STRIKE" ~ 10 + roll_2_pins_down_vector[10] + roll_3_pins_down_vector[10], # 10th frame strike
+                                  ))
+```
+
+
+### Frame Summaries and Total Score
+
+```{r}
+frame_summaries <- points %>%
+  select(-pins_remaining) %>%
+  kable(col.names = c("Frame", "Pins Remaining", "Roll 1 Pins Down", "Roll 2 Pins Down", "Roll 3 Pins Down", "Frame Interpretation", "Frame Points"), align = "r") %>%
+  kableExtra::kable_styling("striped")
+
+
+total_score <- points %>%
+  summarize(total_points = sum(frame_points)) %>%
+  kable(col.names = "Total Points", align = "r") %>%
+  kableExtra::kable_styling("striped")
+```
+
+
+### Function for Single Iteration of Score Simulation
+
+
+```{r message = FALSE, warning = FALSE}
+sim_1000 <- function() {
+  frame <- as_tibble(seq(1,10)) %>%
+  rename(frame = value)
+
+first_roll <- frame %>%
+  mutate(roll_1_pins_down = sample(0:10, 10, replace=TRUE))
+
+roll_1_pins_down_vector <- first_roll$roll_1_pins_down
+
+roll_2_pins_down_vector <- c()
+
+first_roll <- first_roll %>%
+  mutate(pins_remaining_string = case_when(roll_1_pins_down == 0 ~ pins_remaining_10,
+                                    roll_1_pins_down == 1 ~ pins_remaining_9[sample(1:length(pins_remaining_9), 1)],
+                                    roll_1_pins_down == 2 ~ pins_remaining_8[sample(1:length(pins_remaining_8), 1)],
+                                    roll_1_pins_down == 3 ~ pins_remaining_7[sample(1:length(pins_remaining_7), 1)],
+                                    roll_1_pins_down == 4 ~ pins_remaining_6[sample(1:length(pins_remaining_6), 1)],
+                                    roll_1_pins_down == 5 ~ pins_remaining_5[sample(1:length(pins_remaining_5), 1)],
+                                    roll_1_pins_down == 6 ~ pins_remaining_4[sample(1:length(pins_remaining_4), 1)],
+                                    roll_1_pins_down == 7 ~ pins_remaining_3[sample(1:length(pins_remaining_3), 1)],
+                                    roll_1_pins_down == 8 ~ pins_remaining_2[sample(1:length(pins_remaining_2), 1)],
+                                    roll_1_pins_down == 9 ~ pins_remaining_1[sample(1:length(pins_remaining_1), 1)],
+                                    roll_1_pins_down == 10 ~ "")) %>%
+  mutate(pins_remaining = strsplit(pins_remaining_string, ','))
+
+
+  
+
+
+
+for(i in 1:10){
+  if(any(unlist(first_roll$pins_remaining[i])) %in% c("2", "4", "7", "8") &
+      any(unlist(first_roll$pins_remaining[i])) %in% c("3", "6", "9", "10") & 
+      any(unlist(first_roll$pins_remaining[i])) %in% c("1", "2", "3", "5", "8", "9") == FALSE){
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) > sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")), 1))
+    }
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) < sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")), 1))
+      }
+    if(sum(unlist(first_roll$pins_remaining[i]) %in% c("3", "6", "9", "10")) == sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")))
+      {
+        roll_2_pins_down_vector <- append(roll_2_pins_down_vector, sample(0:sum(unlist(first_roll$pins_remaining[i]) %in% c("2", "4", "7", "8")), 1))
+      }
+  }
+  else{
+    roll_2_pins_down_vector <- append(roll_2_pins_down_vector, 
+                             sample(0:(10 - first_roll$roll_1_pins_down[i]), 1))
+  }
+}
+
+second_roll <- first_roll %>%
+ mutate(roll_2_pins_down = case_when(roll_1_pins_down != 10 
+                                     ~ roll_2_pins_down_vector[frame],
+                                     roll_1_pins_down == 10 ~ NA_integer_))
+
+third_roll <- second_roll %>%
+  mutate(roll_2_pins_down = case_when(frame == 10 & roll_1_pins_down == 10 
+                                           ~ sample(0:10, 1),
+                                      TRUE ~ roll_2_pins_down),
+         roll_3_pins_down = case_when(frame == 10 & roll_1_pins_down == 10 & roll_2_pins_down == 10 
+                                           ~ sample(0:10, 1),
+                                      frame == 10 & roll_1_pins_down == 10 & roll_2_pins_down != 10 ~ sample(0:(10 - roll_2_pins_down[10]), 1),
+                                      frame == 10 & roll_1_pins_down + roll_2_pins_down == 10 ~ sample(0:10, 1),
+                                      TRUE ~ NA_integer_))
+
+
+
+roll_1_pins_down_vector <- third_roll$roll_1_pins_down
+roll_2_pins_down_vector <- third_roll$roll_2_pins_down
+roll_3_pins_down_vector <- third_roll$roll_3_pins_down
+
+frame_interpretations <- third_roll %>%
+  mutate(frame_interpretation = case_when(roll_1_pins_down == 10 ~ "STRIKE",
+                                          roll_1_pins_down + roll_2_pins_down == 10 ~ "SPARE",
+                                          TRUE ~ "OPEN"))
+
+points <- frame_interpretations %>%
+  mutate(frame_points = case_when(frame_interpretation == "OPEN" ~ as.numeric(roll_1_pins_down_vector[frame] + roll_2_pins_down_vector[frame]), # open
+                      
+                                  frame != 10 & frame_interpretation == "SPARE" ~ 10 + lead(roll_1_pins_down, order_by = frame, n = 1), # spare before 10th frame
+                                  
+                                  frame == 10 & frame_interpretation == "SPARE" ~ 10 + roll_3_pins_down_vector[frame], # spare on 10th frame
+                                  
+                                  frame < 9 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) == "STRIKE" ~ 20 + lead(roll_1_pins_down, order_by = frame, n = 2), # 2 strikes in a row before 9th
+                                  
+                                  frame != 10 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) != "STRIKE" ~ 10 + lead(roll_1_pins_down, order_by = frame, n = 1) + lead(roll_2_pins_down, order_by = frame, n = 1), # strike before 10th frame
+                                  
+                                  frame == 9 & frame_interpretation == "STRIKE" & lead(frame_interpretation, order_by = frame, n = 1) == "STRIKE" ~ 20 + lead(roll_2_pins_down, order_by = frame, n = 1), # 2 strikes in a row 9th
+                                  
+                                  frame = 10 & frame_interpretation == "STRIKE" ~ 10 + roll_2_pins_down_vector[10] + roll_3_pins_down_vector[10], # 10th frame strike
+                                  ))
+total_score <- points %>%
+  summarize(total_points = sum(frame_points)) %>%
+  select(total_points) %>%
+  pull()
+
+return(total_score) 
+
+}
+
+```
+
+
+### Repeat to Get 1000 Scores
+
+```{r message = FALSE, warning = FALSE}
+scores <- c()
+
+for(i in 1:1000){
+  scores <- append(scores, sim_1000())
+}
+```
+
+### Histogram of Outcomes
+
+```{r}
+scores_tibble <- as_tibble(scores)
+
+ggplot(scores_tibble, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "gray", color = "black") +
+  labs(title = "Distribution of 1000 Bowling Score Simulations",
+       x = "Bowling Game Score",
+       y = "Frequency") +
+  theme_minimal()
+  
+```
